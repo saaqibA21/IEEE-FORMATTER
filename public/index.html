@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,13 +11,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
     <div id="toast">File generated successfully!</div>
 
     <div class="container">
         <header>
             <h1>IEEE Formatter</h1>
-            <p style="color: var(--text-muted); font-weight: 500;">Transform your research into a perfectly formatted IEEE paper</p>
+            <p style="color: var(--text-muted); font-weight: 500;">Transform your research into a perfectly formatted
+                IEEE paper</p>
         </header>
 
         <main id="app">
@@ -35,7 +38,8 @@
                 </div>
                 <div class="input-group">
                     <label for="keywords">Keywords</label>
-                    <input type="text" id="keywords" placeholder="Deep Learning, Blockchain, Wireless Sensor Networks (comma separated)">
+                    <input type="text" id="keywords"
+                        placeholder="Deep Learning, Blockchain, Wireless Sensor Networks (comma separated)">
                 </div>
             </section>
 
@@ -65,20 +69,36 @@
                 </div>
             </section>
 
+            <!-- Figures Section -->
+            <section class="glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-image"></i> Figures & Illustrations</h2>
+                    <button class="btn btn-secondary" onclick="addFigure()">
+                        <i class="fas fa-plus"></i> Add Figure
+                    </button>
+                </div>
+                <div id="figuresList" class="grid" style="grid-template-columns: 1fr;">
+                    <!-- Figures will be injected here -->
+                </div>
+            </section>
+
             <!-- References -->
+
             <section class="glass-panel">
                 <div class="section-header">
                     <h2><i class="fas fa-books"></i> References</h2>
                 </div>
                 <div class="input-group">
                     <label for="references">Citations List</label>
-                    <textarea id="references" rows="6" placeholder="[1] J. Doe, 'A Study on AI', IEEE Trans. Vol 1, 2023.&#10;[2] S. Smith, 'Next Gen Networks', ACM, 2024.&#10;(One reference per line)"></textarea>
+                    <textarea id="references" rows="6"
+                        placeholder="[1] J. Doe, 'A Study on AI', IEEE Trans. Vol 1, 2023.&#10;[2] S. Smith, 'Next Gen Networks', ACM, 2024.&#10;(One reference per line)"></textarea>
                 </div>
             </section>
 
             <!-- Final Actions -->
             <div class="actions">
-                <button class="btn btn-primary" style="font-size: 1.2rem; padding: 15px 40px;" onclick="generatePaper()" id="generateBtn">
+                <button class="btn btn-primary" style="font-size: 1.2rem; padding: 15px 40px;" onclick="generatePaper()"
+                    id="generateBtn">
                     <i class="fas fa-magic"></i> Generate IEEE Paper (DOCX)
                 </button>
             </div>
@@ -98,6 +118,7 @@
     <script>
         let authorCount = 0;
         let sectionCount = 0;
+        let figureCount = 0;
 
         // Initialize from LocalStorage
         window.onload = () => {
@@ -174,6 +195,47 @@
             document.getElementById('sectionsList').insertAdjacentHTML('beforeend', html);
         }
 
+        function addFigure(data = {}) {
+            const id = ++figureCount;
+            const html = `
+                <div class="section-card" id="figure-${id}" style="border-left-color: #f1c40f;">
+                    <button class="btn btn-danger" style="position: absolute; right: 10px; top: 10px;" onclick="removeElement('figure-${id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="grid" style="grid-template-columns: 1fr 2fr;">
+                        <div class="input-group">
+                            <label>Upload Image</label>
+                            <input type="file" accept="image/*" onchange="previewImage(this, 'preview-${id}')" class="fig-file">
+                            <div class="image-preview" id="preview-${id}" style="margin-top: 10px; max-width: 100%; height: 150px; border: 2px dashed var(--text-muted); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #eee;">
+                                ${data.base64 ? `<img src="${data.base64}" style="max-width: 100%; max-height: 100%;">` : '<i class="fas fa-image fa-2x" style="color: #ccc;"></i>'}
+                            </div>
+                            <input type="hidden" class="fig-base64" value="${data.base64 || ''}">
+                        </div>
+                        <div class="input-group">
+                            <label>Figure Caption</label>
+                            <input type="text" class="fig-caption" value="${data.caption || ''}" placeholder="Fig 1. System Architecture Diagram">
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('figuresList').insertAdjacentHTML('beforeend', html);
+        }
+
+        async function previewImage(input, previewId) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result;
+                const preview = document.getElementById(previewId);
+                preview.innerHTML = `<img src="${base64}" style="max-width: 100%; max-height: 100%;">`;
+                input.parentElement.querySelector('.fig-base64').value = base64;
+                saveData();
+            };
+            reader.readAsDataURL(file);
+        }
+
         function removeElement(id) {
             document.getElementById(id).remove();
             saveData();
@@ -195,9 +257,13 @@
                     cityCountry: card.querySelector('.auth-city').value,
                     email: card.querySelector('.auth-email').value
                 })),
-                sections: [...document.querySelectorAll('.section-card')].map(card => ({
+                sections: [...document.querySelectorAll('.section-card:not([id^="figure-"])')].map(card => ({
                     title: card.querySelector('.sec-title').value,
                     content: card.querySelector('.sec-content').value
+                })),
+                figures: [...document.querySelectorAll('[id^="figure-"]')].map(card => ({
+                    caption: card.querySelector('.fig-caption').value,
+                    base64: card.querySelector('.fig-base64').value
                 })),
                 references: document.getElementById('references').value.split('\n').filter(r => r.trim())
             };
@@ -219,7 +285,7 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                
+
                 showToast("Paper generated successfully!");
             } catch (err) {
                 alert("Error generating paper. Please check the console.");
@@ -249,9 +315,13 @@
                     cityCountry: card.querySelector('.auth-city').value,
                     email: card.querySelector('.auth-email').value
                 })),
-                sections: [...document.querySelectorAll('.section-card')].map(card => ({
+                sections: [...document.querySelectorAll('.section-card:not([id^="figure-"])')].map(card => ({
                     title: card.querySelector('.sec-title').value,
                     content: card.querySelector('.sec-content').value
+                })),
+                figures: [...document.querySelectorAll('[id^="figure-"]')].map(card => ({
+                    caption: card.querySelector('.fig-caption').value,
+                    base64: card.querySelector('.fig-base64').value
                 })),
                 references: document.getElementById('references').value
             };
@@ -261,7 +331,7 @@
         function loadSavedData() {
             const saved = localStorage.getItem('ieee_data');
             const theme = localStorage.getItem('theme');
-            
+
             if (theme) {
                 document.documentElement.setAttribute('data-theme', theme);
                 document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
@@ -273,9 +343,10 @@
                 document.getElementById('abstract').value = data.abstract || '';
                 document.getElementById('keywords').value = data.keywords || '';
                 document.getElementById('references').value = data.references || '';
-                
+
                 data.authors?.forEach(a => addAuthor(a));
                 data.sections?.forEach(s => addSection(s.title, s.content));
+                data.figures?.forEach(f => addFigure(f));
             }
 
             // Auto-save on input
@@ -289,7 +360,7 @@
             }
         }
 
-        function debounce(func, timeout = 300){
+        function debounce(func, timeout = 300) {
             let timer;
             return (...args) => {
                 clearTimeout(timer);
@@ -298,4 +369,5 @@
         }
     </script>
 </body>
+
 </html>

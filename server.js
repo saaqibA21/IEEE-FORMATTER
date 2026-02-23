@@ -3,9 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const PizZip = require("pizzip");
 const Docxtemplater = require("docxtemplater");
+const ImageModule = require("docxtemplater-image-module-free"); // Added for images
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const morgan = require("morgan"); // Added logging
+const morgan = require("morgan");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,24 +24,42 @@ app.get("/status", (req, res) => {
 
 app.post("/generate", (req, res) => {
     console.log(`Generating paper: ${req.body.title || 'Untitled'}`);
-    
+
     try {
         const templatePath = path.join(__dirname, "template.docx");
-        
+
         if (!fs.existsSync(templatePath)) {
             return res.status(404).json({ error: "Template file missing from server." });
         }
 
         const content = fs.readFileSync(templatePath, "binary");
         const zip = new PizZip(content);
-        const doc = new Docxtemplater(zip, { 
-            paragraphLoop: true, 
-            linebreaks: true 
+
+        // Configure Image Module
+        const opts = {
+            centered: true,
+            fileType: "docx",
+            getImage: (tagValue) => {
+                // Strip the data:image/...;base64, prefix
+                const base64Data = tagValue.split(",")[1] || tagValue;
+                return Buffer.from(base64Data, "base64");
+            },
+            getSize: (img, tagValue, tagName) => {
+                // Return [width, height] in pixels
+                return [500, 350];
+            }
+        };
+        const imageModule = new ImageModule(opts);
+
+        const doc = new Docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+            modules: [imageModule]
         });
 
         const data = req.body;
 
-        // Prepare authors array with safety checks
+        // Prepare authors array
         const authors = (data.authors || []).map(a => ({
             NAME: a.name || 'Anonymous',
             DEPARTMENT: a.department || '',
@@ -53,6 +72,13 @@ app.post("/generate", (req, res) => {
         const sections = (data.sections || []).map(s => ({
             TITLE: s.title || 'Untitled Section',
             CONTENT: s.content || ''
+        }));
+
+        // Prepare figures array
+        // In the template, use: {#FIGURES} {%IMAGE} {CAPTION} {/FIGURES}
+        const figures = (data.figures || []).map(f => ({
+            IMAGE: f.base64,
+            CAPTION: f.caption || ''
         }));
 
         // Prepare references
@@ -68,6 +94,7 @@ app.post("/generate", (req, res) => {
             KEYWORDS: data.keywords || '',
             AUTHORS: authors,
             SECTIONS: sections,
+            FIGURES: figures,
             REFERENCES: references
         });
 
@@ -80,18 +107,19 @@ app.post("/generate", (req, res) => {
 
     } catch (error) {
         console.error("Critical Error:", error);
-        res.status(500).json({ 
-            error: "Failed to generate document", 
-            details: error.message 
+        res.status(500).json({
+            error: "Failed to generate document",
+            details: error.message
         });
     }
 });
 
 app.listen(PORT, () => {
     console.log(`
-🚀 IEEE Formatter Advanced Server
+🚀 IEEE Formatter Pro (Image Support)
 📡 Running on: http://localhost:${PORT}
 📁 Static Files: ${path.join(__dirname, 'public')}
     `);
 });
+
 
