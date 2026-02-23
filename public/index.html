@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IEEE Paper Generator</title>
+  <style>
+    body { font-family: Arial; max-width: 900px; margin: auto; }
+    textarea, input { width: 100%; margin: 6px 0; padding: 6px; }
+    button { padding: 8px 16px; margin: 5px 0; }
+    .box { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+
+<h2>IEEE Paper Generator</h2>
+
+<input id="title" placeholder="Paper Title">
+<textarea id="abstract" placeholder="Abstract"></textarea>
+<input id="keywords" placeholder="Keywords">
+
+<h3>Authors</h3>
+<div id="authors"></div>
+<button onclick="addAuthor()">+ Add Author</button>
+
+<h3>Sections</h3>
+<div id="sections"></div>
+<button onclick="addSection()">+ Add Section</button>
+
+<h3>References</h3>
+<textarea id="references" placeholder="One reference per line"></textarea>
+
+<button onclick="generate()">Generate IEEE Paper</button>
+
+<script>
+function addAuthor() {
+  const div = document.createElement("div");
+  div.className = "box";
+  div.innerHTML = `
+    <input placeholder="Name" class="name">
+    <input placeholder="Department" class="dept">
+    <input placeholder="Organization" class="org">
+    <input placeholder="City, Country" class="city">
+    <input placeholder="Email" class="email">
+  `;
+  authors.appendChild(div);
+}
+
+function addSection() {
+  const div = document.createElement("div");
+  div.className = "box";
+  div.innerHTML = `
+    <input placeholder="Section Title" class="stitle">
+    <textarea placeholder="Section Content" class="scontent"></textarea>
+  `;
+  sections.appendChild(div);
+}
+
+async function generate() {
+  const authorsData = [...document.querySelectorAll("#authors .box")].map(a => ({
+    name: a.querySelector(".name").value,
+    department: a.querySelector(".dept").value,
+    organization: a.querySelector(".org").value,
+    cityCountry: a.querySelector(".city").value,
+    email: a.querySelector(".email").value
+  }));
+
+  const sectionsData = [...document.querySelectorAll("#sections .box")].map(s => ({
+    title: s.querySelector(".stitle").value,
+    content: s.querySelector(".scontent").value
+  }));
+
+  const refs = document.getElementById("references").value.split("\n").filter(r => r);
+
+  const payload = {
+    title: title.value,
+    abstract: abstract.value,
+    keywords: keywords.value,
+    authors: authorsData,
+    sections: sectionsData,
+    references: refs
+  };
+
+  const res = await fetch("/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "IEEE_Paper.docx";
+  a.click();
+}
+</script>
+
+</body>
+</html>
