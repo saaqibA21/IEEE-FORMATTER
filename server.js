@@ -114,12 +114,18 @@ app.post("/generate", (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`
-🚀 IEEE Formatter Pro (Image Support)
-📡 Running on: http://localhost:${PORT}
-📁 Static Files: ${path.join(__dirname, 'public')}
-    `);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`
+    🚀 IEEE Formatter Pro (Image Support)
+    📡 Running on: http://localhost:${PORT}
+    📁 Static Files: ${path.join(__dirname, 'public')}
+        `);
+    });
+}
+
+module.exports = app;
+
 
 
