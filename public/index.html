@@ -1,98 +1,301 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
-  <title>IEEE Paper Generator</title>
-  <style>
-    body { font-family: Arial; max-width: 900px; margin: auto; }
-    textarea, input { width: 100%; margin: 6px 0; padding: 6px; }
-    button { padding: 8px 16px; margin: 5px 0; }
-    .box { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEEE Formatter | Professional Research Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <div id="toast">File generated successfully!</div>
 
-<h2>IEEE Paper Generator</h2>
+    <div class="container">
+        <header>
+            <h1>IEEE Formatter</h1>
+            <p style="color: var(--text-muted); font-weight: 500;">Transform your research into a perfectly formatted IEEE paper</p>
+        </header>
 
-<input id="title" placeholder="Paper Title">
-<textarea id="abstract" placeholder="Abstract"></textarea>
-<input id="keywords" placeholder="Keywords">
+        <main id="app">
+            <!-- Paper Metadata -->
+            <section class="glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-file-alt"></i> Paper Metadata</h2>
+                </div>
+                <div class="input-group">
+                    <label for="title">Paper Title</label>
+                    <input type="text" id="title" placeholder="Enter the full title of your research paper">
+                </div>
+                <div class="input-group">
+                    <label for="abstract">Abstract</label>
+                    <textarea id="abstract" rows="4" placeholder="Briefly summarize your research..."></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="keywords">Keywords</label>
+                    <input type="text" id="keywords" placeholder="Deep Learning, Blockchain, Wireless Sensor Networks (comma separated)">
+                </div>
+            </section>
 
-<h3>Authors</h3>
-<div id="authors"></div>
-<button onclick="addAuthor()">+ Add Author</button>
+            <!-- Authors Section -->
+            <section class="glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Authors</h2>
+                    <button class="btn btn-secondary" onclick="addAuthor()">
+                        <i class="fas fa-plus"></i> Add Author
+                    </button>
+                </div>
+                <div id="authorsList">
+                    <!-- Authors will be injected here -->
+                </div>
+            </section>
 
-<h3>Sections</h3>
-<div id="sections"></div>
-<button onclick="addSection()">+ Add Section</button>
+            <!-- Paper Content -->
+            <section class="glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-layer-group"></i> Sections</h2>
+                    <button class="btn btn-secondary" onclick="addSection()">
+                        <i class="fas fa-plus"></i> Add Section
+                    </button>
+                </div>
+                <div id="sectionsList">
+                    <!-- Sections will be injected here -->
+                </div>
+            </section>
 
-<h3>References</h3>
-<textarea id="references" placeholder="One reference per line"></textarea>
+            <!-- References -->
+            <section class="glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-books"></i> References</h2>
+                </div>
+                <div class="input-group">
+                    <label for="references">Citations List</label>
+                    <textarea id="references" rows="6" placeholder="[1] J. Doe, 'A Study on AI', IEEE Trans. Vol 1, 2023.&#10;[2] S. Smith, 'Next Gen Networks', ACM, 2024.&#10;(One reference per line)"></textarea>
+                </div>
+            </section>
 
-<button onclick="generate()">Generate IEEE Paper</button>
+            <!-- Final Actions -->
+            <div class="actions">
+                <button class="btn btn-primary" style="font-size: 1.2rem; padding: 15px 40px;" onclick="generatePaper()" id="generateBtn">
+                    <i class="fas fa-magic"></i> Generate IEEE Paper (DOCX)
+                </button>
+            </div>
+        </main>
+    </div>
 
-<script>
-function addAuthor() {
-  const div = document.createElement("div");
-  div.className = "box";
-  div.innerHTML = `
-    <input placeholder="Name" class="name">
-    <input placeholder="Department" class="dept">
-    <input placeholder="Organization" class="org">
-    <input placeholder="City, Country" class="city">
-    <input placeholder="Email" class="email">
-  `;
-  authors.appendChild(div);
-}
+    <!-- Floating Actions -->
+    <div class="floating-nav">
+        <button class="nav-circle" title="Toggle Dark Mode" onclick="toggleTheme()">
+            <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <button class="nav-circle" title="Clear Data" onclick="clearData()" style="background: #e74c3c;">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
 
-function addSection() {
-  const div = document.createElement("div");
-  div.className = "box";
-  div.innerHTML = `
-    <input placeholder="Section Title" class="stitle">
-    <textarea placeholder="Section Content" class="scontent"></textarea>
-  `;
-  sections.appendChild(div);
-}
+    <script>
+        let authorCount = 0;
+        let sectionCount = 0;
 
-async function generate() {
-  const authorsData = [...document.querySelectorAll("#authors .box")].map(a => ({
-    name: a.querySelector(".name").value,
-    department: a.querySelector(".dept").value,
-    organization: a.querySelector(".org").value,
-    cityCountry: a.querySelector(".city").value,
-    email: a.querySelector(".email").value
-  }));
+        // Initialize from LocalStorage
+        window.onload = () => {
+            loadSavedData();
+            if (document.getElementById('authorsList').children.length === 0) addAuthor();
+            if (document.getElementById('sectionsList').children.length === 0) {
+                addSection("Introduction");
+                addSection("Conclusion");
+            }
+        };
 
-  const sectionsData = [...document.querySelectorAll("#sections .box")].map(s => ({
-    title: s.querySelector(".stitle").value,
-    content: s.querySelector(".scontent").value
-  }));
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const target = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', target);
+            document.getElementById('themeIcon').className = target === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.setItem('theme', target);
+        }
 
-  const refs = document.getElementById("references").value.split("\n").filter(r => r);
+        function addAuthor(data = {}) {
+            const id = ++authorCount;
+            const html = `
+                <div class="author-card" id="author-${id}">
+                    <button class="btn btn-danger" style="position: absolute; right: 10px; top: 10px;" onclick="removeElement('author-${id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="grid">
+                        <div class="input-group">
+                            <label>Full Name</label>
+                            <input type="text" class="auth-name" value="${data.name || ''}" placeholder="Dr. Jane Smith">
+                        </div>
+                        <div class="input-group">
+                            <label>Department</label>
+                            <input type="text" class="auth-dept" value="${data.department || ''}" placeholder="Computer Science">
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="input-group">
+                            <label>Organization</label>
+                            <input type="text" class="auth-org" value="${data.organization || ''}" placeholder="University of Future">
+                        </div>
+                        <div class="input-group">
+                            <label>City, Country</label>
+                            <input type="text" class="auth-city" value="${data.cityCountry || ''}" placeholder="New York, USA">
+                        </div>
+                        <div class="input-group">
+                            <label>Email</label>
+                            <input type="email" class="auth-email" value="${data.email || ''}" placeholder="jane@univ.edu">
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('authorsList').insertAdjacentHTML('beforeend', html);
+        }
 
-  const payload = {
-    title: title.value,
-    abstract: abstract.value,
-    keywords: keywords.value,
-    authors: authorsData,
-    sections: sectionsData,
-    references: refs
-  };
+        function addSection(title = "", content = "") {
+            const id = ++sectionCount;
+            const html = `
+                <div class="section-card" id="section-${id}">
+                    <button class="btn btn-danger" style="position: absolute; right: 10px; top: 10px;" onclick="removeElement('section-${id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="input-group">
+                        <label>Section Title</label>
+                        <input type="text" class="sec-title" value="${title}" placeholder="e.g., Literature Review">
+                    </div>
+                    <div class="input-group">
+                        <label>Content</label>
+                        <textarea class="sec-content" rows="6" placeholder="Write the content for this section...">${content}</textarea>
+                    </div>
+                </div>
+            `;
+            document.getElementById('sectionsList').insertAdjacentHTML('beforeend', html);
+        }
 
-  const res = await fetch("/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+        function removeElement(id) {
+            document.getElementById(id).remove();
+            saveData();
+        }
 
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "IEEE_Paper.docx";
-  a.click();
-}
-</script>
+        async function generatePaper() {
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
+            const payload = {
+                title: document.getElementById('title').value,
+                abstract: document.getElementById('abstract').value,
+                keywords: document.getElementById('keywords').value,
+                authors: [...document.querySelectorAll('.author-card')].map(card => ({
+                    name: card.querySelector('.auth-name').value,
+                    department: card.querySelector('.auth-dept').value,
+                    organization: card.querySelector('.auth-org').value,
+                    cityCountry: card.querySelector('.auth-city').value,
+                    email: card.querySelector('.auth-email').value
+                })),
+                sections: [...document.querySelectorAll('.section-card')].map(card => ({
+                    title: card.querySelector('.sec-title').value,
+                    content: card.querySelector('.sec-content').value
+                })),
+                references: document.getElementById('references').value.split('\n').filter(r => r.trim())
+            };
+
+            try {
+                const res = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error('Generation failed');
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${payload.title || 'IEEE_Paper'}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                showToast("Paper generated successfully!");
+            } catch (err) {
+                alert("Error generating paper. Please check the console.");
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate IEEE Paper (DOCX)';
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = 'show';
+            setTimeout(() => toast.className = '', 3000);
+        }
+
+        function saveData() {
+            const data = {
+                title: document.getElementById('title').value,
+                abstract: document.getElementById('abstract').value,
+                keywords: document.getElementById('keywords').value,
+                authors: [...document.querySelectorAll('.author-card')].map(card => ({
+                    name: card.querySelector('.auth-name').value,
+                    department: card.querySelector('.auth-dept').value,
+                    organization: card.querySelector('.auth-org').value,
+                    cityCountry: card.querySelector('.auth-city').value,
+                    email: card.querySelector('.auth-email').value
+                })),
+                sections: [...document.querySelectorAll('.section-card')].map(card => ({
+                    title: card.querySelector('.sec-title').value,
+                    content: card.querySelector('.sec-content').value
+                })),
+                references: document.getElementById('references').value
+            };
+            localStorage.setItem('ieee_data', JSON.stringify(data));
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('ieee_data');
+            const theme = localStorage.getItem('theme');
+            
+            if (theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('title').value = data.title || '';
+                document.getElementById('abstract').value = data.abstract || '';
+                document.getElementById('keywords').value = data.keywords || '';
+                document.getElementById('references').value = data.references || '';
+                
+                data.authors?.forEach(a => addAuthor(a));
+                data.sections?.forEach(s => addSection(s.title, s.content));
+            }
+
+            // Auto-save on input
+            document.addEventListener('input', debounce(saveData, 1000));
+        }
+
+        function clearData() {
+            if (confirm("Are you sure you want to clear all data?")) {
+                localStorage.removeItem('ieee_data');
+                location.reload();
+            }
+        }
+
+        function debounce(func, timeout = 300){
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+    </script>
 </body>
 </html>
